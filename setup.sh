@@ -63,21 +63,54 @@ echo ""
 
 # ── Step 4: Download models ──
 echo "[4/5] Downloading TRELLIS.2-4B models (~17 GB)..."
-python3 -c "
-from huggingface_hub import snapshot_download
-import os
 
-cache_dir = os.path.join('$WORKSPACE', 'hf_cache')
-os.makedirs(cache_dir, exist_ok=True)
+HF_TOKEN="${HF_TOKEN:-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}"
+HF_AUTH="Authorization: Bearer $HF_TOKEN"
 
-print('  Downloading microsoft/TRELLIS.2-4B...')
-snapshot_download('microsoft/TRELLIS.2-4B', cache_dir=cache_dir)
+MODEL_DIR="$WORKSPACE/models/microsoft/TRELLIS.2-4B"
+mkdir -p "$MODEL_DIR/ckpts"
 
-print('  Downloading facebook/dinov3-vitl16-pretrain-lvd1689m...')
-snapshot_download('facebook/dinov3-vitl16-pretrain-lvd1689m', cache_dir=cache_dir)
+HF_BASE="https://huggingface.co/microsoft/TRELLIS.2-4B/resolve/main"
+CKPTS=(
+    "shape_enc_next_dc_f16c32_fp16"
+    "shape_dec_next_dc_f16c32_fp16"
+    "tex_enc_next_dc_f16c32_fp16"
+    "tex_dec_next_dc_f16c32_fp16"
+    "ss_flow_img_dit_1_3B_64_bf16"
+    "slat_flow_img2shape_dit_1_3B_512_bf16"
+    "slat_flow_img2shape_dit_1_3B_1024_bf16"
+    "slat_flow_imgshape2tex_dit_1_3B_512_bf16"
+    "slat_flow_imgshape2tex_dit_1_3B_1024_bf16"
+)
 
-print('  Done.')
-"
+for ckpt in "${CKPTS[@]}"; do
+    dest="$MODEL_DIR/ckpts/${ckpt}.safetensors"
+    if [ -f "$dest" ]; then
+        echo "  SKIP $ckpt.safetensors"
+    else
+        echo "  GET  $ckpt.safetensors"
+        wget -q --show-progress --header="$HF_AUTH" \
+            "$HF_BASE/ckpts/${ckpt}.safetensors" -O "$dest"
+    fi
+    wget -q --header="$HF_AUTH" \
+        "$HF_BASE/ckpts/${ckpt}.json" -O "$MODEL_DIR/ckpts/${ckpt}.json" 2>/dev/null || true
+done
+
+for cfg in pipeline.json texturing_pipeline.json; do
+    [ -f "$MODEL_DIR/$cfg" ] || wget -q --header="$HF_AUTH" "$HF_BASE/$cfg" -O "$MODEL_DIR/$cfg"
+done
+
+echo ""
+echo "  Downloading DINOv3..."
+DINO_DIR="$WORKSPACE/models/facebook/dinov3-vitl16-pretrain-lvd1689m"
+mkdir -p "$DINO_DIR"
+if [ -f "$DINO_DIR/model.safetensors" ]; then
+    echo "  SKIP model.safetensors"
+else
+    wget -q --show-progress --header="$HF_AUTH" \
+        "https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m/resolve/main/model.safetensors" \
+        -O "$DINO_DIR/model.safetensors"
+fi
 echo ""
 
 # ── Step 5: Verify ──

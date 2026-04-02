@@ -18,12 +18,13 @@ fi
 echo "Installing CUDA dependencies..."
 pip install -q comfy-sparse-attn 2>/dev/null || echo "comfy-sparse-attn already installed or failed"
 
-# Point HuggingFace at the pre-downloaded models
+# Point at pre-downloaded models
+export TRELLIS2_MODEL_DIR="$WORKSPACE/models"
 export HF_HOME="$WORKSPACE/hf_cache"
 
 echo ""
 echo "Starting ComfyUI..."
-echo "  HF_HOME: $HF_HOME"
+echo "  Models: $WORKSPACE/models"
 echo "  URL:     http://0.0.0.0:8188"
 echo ""
 
