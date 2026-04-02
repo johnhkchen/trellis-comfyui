@@ -5,7 +5,18 @@
 #
 set -euo pipefail
 
-COMFYUI_DIR="${COMFYUI_DIR:-/workspace/ComfyUI}"
+# Auto-detect ComfyUI path (RunPod templates vary)
+if [ -n "${COMFYUI_DIR:-}" ]; then
+    :
+elif [ -d "/workspace/runpod-slim/ComfyUI" ]; then
+    COMFYUI_DIR="/workspace/runpod-slim/ComfyUI"
+elif [ -d "/workspace/ComfyUI" ]; then
+    COMFYUI_DIR="/workspace/ComfyUI"
+else
+    echo "Error: Cannot find ComfyUI installation."
+    echo "Set COMFYUI_DIR manually: COMFYUI_DIR=/path/to/ComfyUI bash setup.sh"
+    exit 1
+fi
 NODE_DIR="$COMFYUI_DIR/custom_nodes/ComfyUI-Trellis2"
 
 echo "============================================"

@@ -22,8 +22,10 @@ ENDPOINT="${RUNPOD_ENDPOINT:-https://s3api-${REGION}.runpod.io}"
 S3_BASE="s3://${BUCKET}"
 
 # Paths on the network volume (mounted at /workspace in the pod)
-IMAGES_PATH="ComfyUI/input"
-OUTPUT_PATH="ComfyUI/output"
+# RunPod slim template uses runpod-slim/ComfyUI, others use ComfyUI
+COMFYUI_PREFIX="${RUNPOD_COMFYUI_PREFIX:-runpod-slim/ComfyUI}"
+IMAGES_PATH="${COMFYUI_PREFIX}/input"
+OUTPUT_PATH="${COMFYUI_PREFIX}/output"
 
 PROFILE="${AWS_PROFILE:-runpod}"
 
@@ -183,7 +185,7 @@ cmd_setup_models() {
         local size
         size=$(du -h "$f" 2>/dev/null | cut -f1 | tr -d ' ')
         echo "  [$current/$total] $relpath ($size)"
-        s3_put_file "$f" "ComfyUI/models/${relpath}"
+        s3_put_file "$f" "${COMFYUI_PREFIX}/models/${relpath}"
     done
 
     echo ""
