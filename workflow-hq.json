@@ -44,15 +44,15 @@
       "type": "Trellis2MeshWithVoxelGenerator",
       "pos": [840, 100],
       "size": [350, 380],
-      "title": "Generate 3D — tweak settings here",
+      "title": "HIGH QUALITY — 1024 cascade, 20 steps, ~90s on 4090",
       "properties": {},
       "widgets_values": [
         42,
         "randomize",
         "1024_cascade",
-        12,
-        12,
-        12,
+        20,
+        20,
+        20,
         7.5,
         7.5,
         7.5,
@@ -72,11 +72,11 @@
       "type": "Trellis2PostProcessAndUnWrapAndRasterizer",
       "pos": [1280, 100],
       "size": [380, 180],
-      "title": "Post-process — face count & texture size",
+      "title": "Post-process — high poly, 4K textures",
       "properties": {},
       "widgets_values": [
-        200000,
-        1024,
+        2000000,
+        4096,
         "Cumesh"
       ],
       "inputs": [
@@ -94,7 +94,7 @@
       "size": [300, 150],
       "properties": {},
       "widgets_values": [
-        "Trellis2Mesh",
+        "Trellis2Mesh_hq",
         "glb",
         true
       ],
@@ -125,21 +125,11 @@
     [6, 12, 0, 14, 0, "TRELLIS2_TRIMESH"],
     [7, 14, 0, 16, 0, "STRING"]
   ],
-  "groups": [
-    {
-      "title": "Settings Guide — click the Generate node to tweak",
-      "bounding": [830, 500, 800, 200],
-      "color": "#444",
-      "font_size": 18
-    }
-  ],
+  "groups": [],
   "config": {},
   "extra": {
-    "ds": {
-      "scale": 0.75,
-      "offset": [0, 0]
-    },
-    "info": "TRELLIS.2 Image-to-3D Workflow\n\nGenerate node settings:\n  resolution: '512' (fast, ~6s) or '1024_cascade' (quality, ~40s)\n  ss_steps/shape_steps/tex_steps: 12 is default, 16-20 for higher quality\n  guidance: 7.5 default, lower=more creative, higher=more faithful\n  seed_mode: 'randomize' for variety, 'fixed' to reproduce\n\nPost-process node settings:\n  target_faces: 200000 default (lower=smaller file, 50000 good for mobile)\n  texture_size: 1024 default (512 for mobile, 2048/4096 for hero assets)\n  remesher: 'Cumesh' (best quality)"
+    "ds": { "scale": 0.75, "offset": [0, 0] },
+    "info": "HIGH QUALITY preset: 1024 voxels, 20 steps (vs 12 default), 2M faces, 4096px textures. ~90s per model on RTX 4090. For hero/showcase assets."
   },
   "version": 0.4
 }

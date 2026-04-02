@@ -7,9 +7,11 @@ Generate 3D `.glb` models from images using Microsoft's TRELLIS.2-4B on RunPod G
 | File | Purpose |
 |------|---------|
 | `setup.sh` | One-time setup on RunPod — installs node, wheels, downloads ~17 GB of models |
-| `workflow.json` | ComfyUI workflow — drag into browser UI for interactive use |
+| `workflow.json` | Standard workflow (1024 voxels, 12 steps, 200K faces, ~40s) |
+| `workflow-fast.json` | Fast workflow (512 voxels, 50K faces, 512px tex, ~6s) |
+| `workflow-hq.json` | High quality workflow (1024 voxels, 20 steps, 2M faces, 4K tex, ~90s) |
 | `batch.py` | Batch processing — queue a folder of images via ComfyUI API |
-| `s3.sh` | Upload images / download results via S3 API (no GPU pod needed) |
+| `s3.sh` | Upload images / download results / setup models via S3 (no GPU needed) |
 | `download.sh` | Alternative: pull `.glb` files via SSH/rsync |
 
 ## Quick Start
@@ -93,15 +95,26 @@ Generating 100 models on RTX 4090 spot:
 
 **Total: ~$0.30 for 100 models** vs HuggingFace Pro limit of 10/day.
 
-## Workflow Settings
+## Workflow Presets
 
-Default settings in `workflow.json`:
+Drag any of these into ComfyUI. All settings are tweakable in the node UI.
 
-- Resolution: 1024 voxels (cascade)
-- Steps: 12/12/12 (structured latent / shape / texture)
-- Guidance: 7.5 (all stages)
-- Post-processing: 200K target faces, 1024px textures, CuMesh remesher
-- Output: `.glb` with PBR materials (base color, roughness, metallic)
+| Workflow | Resolution | Steps | Faces | Texture | Speed (4090) | Use case |
+|----------|-----------|-------|-------|---------|-------------|----------|
+| `workflow-fast.json` | 512 | 12 | 50K | 512px | ~6s | Bulk generation, mobile |
+| `workflow.json` | 1024 | 12 | 200K | 1024px | ~40s | General purpose |
+| `workflow-hq.json` | 1024 | 20 | 2M | 4096px | ~90s | Hero/showcase assets |
+
+**Key settings to tweak** (in the Generate node):
+- `resolution`: `512` (fast) or `1024_cascade` (quality)
+- `ss_steps` / `shape_steps` / `tex_steps`: more steps = better quality, slower (12-20)
+- `guidance`: 7.5 default. Lower = more creative, higher = more faithful to input
+- `seed_mode`: `randomize` for variety, `fixed` to reproduce exact results
+
+**Post-process node:**
+- `target_faces`: lower = smaller file (50K for mobile, 200K standard, 2M for hero)
+- `texture_size`: 512 / 1024 / 2048 / 4096
+- `remesher`: `Cumesh` (best quality)
 
 ## Pipeline Integration
 
