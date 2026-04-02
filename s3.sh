@@ -16,8 +16,8 @@
 #
 set -euo pipefail
 
-BUCKET="${RUNPOD_BUCKET:-hl1vwr8frk}"
-REGION="${RUNPOD_REGION:-us-il-1}"
+BUCKET="${RUNPOD_BUCKET:-2do0vp8xaj}"
+REGION="${RUNPOD_REGION:-eu-ro-1}"
 ENDPOINT="${RUNPOD_ENDPOINT:-https://s3api-${REGION}.runpod.io}"
 S3_BASE="s3://${BUCKET}"
 
