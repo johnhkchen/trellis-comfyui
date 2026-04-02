@@ -56,12 +56,18 @@ cmd_upload() {
     echo "  (no GPU pod needed — writing directly to network volume)"
     echo ""
 
-    s3 sync "$input_dir" "${S3_BASE}/${IMAGES_PATH}/" \
-        --exclude '*' \
-        --include '*.png' --include '*.jpg' --include '*.jpeg' --include '*.webp'
+    local uploaded=0
+    for f in "$input_dir"/*.png "$input_dir"/*.jpg "$input_dir"/*.jpeg "$input_dir"/*.webp; do
+        [ -f "$f" ] || continue
+        local fname
+        fname=$(basename "$f")
+        uploaded=$((uploaded + 1))
+        echo "  [$uploaded] $fname"
+        s3_put_file "$f" "${IMAGES_PATH}/${fname}"
+    done
 
     echo ""
-    echo "Done. Start your GPU pod and run:"
+    echo "Uploaded $uploaded images. Start your GPU pod and run:"
     echo "  python3 /workspace/trellis-setup/batch.py /workspace/${IMAGES_PATH}/"
 }
 
@@ -73,12 +79,26 @@ cmd_download() {
     echo "  (no GPU pod needed — reading directly from network volume)"
     echo ""
 
-    s3 sync "${S3_BASE}/${OUTPUT_PATH}/" "$output_dir/" \
-        --exclude '*' \
-        --include '*.glb'
+    # List .glb files using s3api to avoid pagination issues, then download each
+    local keys
+    keys=$(s3api list-objects-v2 --bucket "$BUCKET" --prefix "${OUTPUT_PATH}/" --query "Contents[?ends_with(Key, '.glb')].Key" --output text 2>/dev/null || echo "")
+
+    if [ -z "$keys" ] || [ "$keys" = "None" ]; then
+        echo "  (no .glb files found)"
+        return
+    fi
+
+    local count=0
+    for key in $keys; do
+        local fname
+        fname=$(basename "$key")
+        count=$((count + 1))
+        echo "  [$count] $fname"
+        s3api get-object --bucket "$BUCKET" --key "$key" "$output_dir/$fname" > /dev/null
+    done
 
     echo ""
-    echo "Downloaded files:"
+    echo "Downloaded $count files:"
     ls -lh "$output_dir"/*.glb 2>/dev/null || echo "  (none)"
 }
 
