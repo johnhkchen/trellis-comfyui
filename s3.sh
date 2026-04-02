@@ -31,6 +31,17 @@ s3() {
     aws s3 "$@" --profile "$PROFILE" --region "$REGION" --endpoint-url "$ENDPOINT"
 }
 
+s3api() {
+    aws s3api "$@" --profile "$PROFILE" --region "$REGION" --endpoint-url "$ENDPOINT"
+}
+
+# Direct upload that avoids ListObjects pagination bug on RunPod S3
+s3_put_file() {
+    local src="$1"
+    local key="$2"
+    s3api put-object --bucket "$BUCKET" --key "$key" --body "$src" > /dev/null
+}
+
 cmd_upload() {
     local input_dir="${1:?Usage: ./s3.sh upload <image-dir>}"
 
@@ -152,7 +163,7 @@ cmd_setup_models() {
         local size
         size=$(du -h "$f" 2>/dev/null | cut -f1 | tr -d ' ')
         echo "  [$current/$total] $relpath ($size)"
-        s3 cp "$f" "${S3_BASE}/ComfyUI/models/${relpath}"
+        s3_put_file "$f" "ComfyUI/models/${relpath}"
     done
 
     echo ""
