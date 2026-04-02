@@ -81,11 +81,11 @@ cmd_setup_models() {
     echo "============================================"
     echo ""
 
-    local tmpdir
-    tmpdir=$(mktemp -d)
-    trap "rm -rf $tmpdir" EXIT
+    local SCRIPT_DIR
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    local CACHE_DIR="$SCRIPT_DIR/.model-cache"
 
-    local MODEL_DIR="$tmpdir/microsoft/TRELLIS.2-4B"
+    local MODEL_DIR="$CACHE_DIR/microsoft/TRELLIS.2-4B"
     mkdir -p "$MODEL_DIR/ckpts"
 
     local HF_BASE="https://huggingface.co/microsoft/TRELLIS.2-4B/resolve/main"
@@ -101,29 +101,41 @@ cmd_setup_models() {
         "slat_flow_imgshape2tex_dit_1_3B_1024_bf16"
     )
 
-    echo "[1/3] Downloading TRELLIS.2-4B checkpoints..."
+    echo "[1/3] Downloading TRELLIS.2-4B checkpoints (skipping existing)..."
     for ckpt in "${CKPTS[@]}"; do
-        echo "  $ckpt.safetensors"
-        curl -sSL "$HF_BASE/ckpts/${ckpt}.safetensors" -o "$MODEL_DIR/ckpts/${ckpt}.safetensors"
+        local dest="$MODEL_DIR/ckpts/${ckpt}.safetensors"
+        if [ -f "$dest" ]; then
+            echo "  SKIP $ckpt.safetensors (cached)"
+        else
+            echo "  GET  $ckpt.safetensors"
+            curl -SL "$HF_BASE/ckpts/${ckpt}.safetensors" -o "$dest"
+        fi
         curl -sSL "$HF_BASE/ckpts/${ckpt}.json" -o "$MODEL_DIR/ckpts/${ckpt}.json" 2>/dev/null || true
     done
 
     for cfg in pipeline.json texturing_pipeline.json; do
-        echo "  $cfg"
-        curl -sSL "$HF_BASE/$cfg" -o "$MODEL_DIR/$cfg"
+        if [ ! -f "$MODEL_DIR/$cfg" ]; then
+            echo "  GET  $cfg"
+            curl -sSL "$HF_BASE/$cfg" -o "$MODEL_DIR/$cfg"
+        fi
     done
 
     echo ""
-    echo "[2/3] Downloading DINOv3..."
-    local DINO_DIR="$tmpdir/facebook/dinov3-vitl16-pretrain-lvd1689m"
+    echo "[2/3] Downloading DINOv3 (skipping if cached)..."
+    local DINO_DIR="$CACHE_DIR/facebook/dinov3-vitl16-pretrain-lvd1689m"
     mkdir -p "$DINO_DIR"
-    curl -sSL "https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m/resolve/main/model.safetensors" \
-        -o "$DINO_DIR/model.safetensors"
+    if [ -f "$DINO_DIR/model.safetensors" ]; then
+        echo "  SKIP model.safetensors (cached)"
+    else
+        echo "  GET  model.safetensors"
+        curl -SL "https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m/resolve/main/model.safetensors" \
+            -o "$DINO_DIR/model.safetensors"
+    fi
 
     echo ""
-    echo "[3/3] Uploading to network volume..."
-    s3 sync "$tmpdir/microsoft/" "${S3_BASE}/ComfyUI/models/microsoft/" --no-progress
-    s3 sync "$tmpdir/facebook/" "${S3_BASE}/ComfyUI/models/facebook/" --no-progress
+    echo "[3/3] Uploading to network volume (sync — skips unchanged files)..."
+    s3 sync "$CACHE_DIR/microsoft/" "${S3_BASE}/ComfyUI/models/microsoft/"
+    s3 sync "$CACHE_DIR/facebook/" "${S3_BASE}/ComfyUI/models/facebook/"
 
     echo ""
     echo "Done. Models are on the network volume."
