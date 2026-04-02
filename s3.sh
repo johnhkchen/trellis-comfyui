@@ -25,8 +25,10 @@ S3_BASE="s3://${BUCKET}"
 IMAGES_PATH="ComfyUI/input"
 OUTPUT_PATH="ComfyUI/output"
 
+PROFILE="${AWS_PROFILE:-runpod}"
+
 s3() {
-    aws s3 "$@" --region "$REGION" --endpoint-url "$ENDPOINT"
+    aws s3 "$@" --profile "$PROFILE" --region "$REGION" --endpoint-url "$ENDPOINT"
 }
 
 cmd_upload() {
