@@ -28,21 +28,32 @@ generate_one() {
     fname=$(basename "$input_file")
 
     echo "[$fname] Encoding..."
-    local b64
-    b64=$(base64 -i "$input_file" | tr -d '\n')
+    local tmpjson
+    tmpjson=$(mktemp /tmp/trellis-XXXXXX.json)
+    trap "rm -f $tmpjson" RETURN
+
+    python3 -c "
+import base64, json
+with open('$input_file', 'rb') as f:
+    b64 = base64.b64encode(f.read()).decode()
+payload = {
+    'input': {
+        'image': b64,
+        'texture_size': $TEXTURE_SIZE,
+        'mesh_simplify': $MESH_SIMPLIFY
+    }
+}
+with open('$tmpjson', 'w') as f:
+    json.dump(payload, f)
+"
 
     echo "[$fname] Submitting to TRELLIS.2..."
     local response
     response=$(curl -sS "$ENDPOINT/run" \
         -H "Authorization: Bearer $API_KEY" \
         -H "Content-Type: application/json" \
-        -d "{
-            \"input\": {
-                \"image\": \"$b64\",
-                \"texture_size\": $TEXTURE_SIZE,
-                \"mesh_simplify\": $MESH_SIMPLIFY
-            }
-        }")
+        -d @"$tmpjson")
+    rm -f "$tmpjson"
 
     local job_id
     job_id=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
