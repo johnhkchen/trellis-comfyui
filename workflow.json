@@ -1,145 +1,131 @@
 {
-  "last_node_id": 19,
-  "last_link_id": 18,
+  "last_node_id": 20,
+  "last_link_id": 10,
   "nodes": [
     {
-      "id": 6,
+      "id": 1,
       "type": "LoadImage",
-      "pos": [100, 300],
+      "pos": [100, 200],
       "size": [315, 370],
       "properties": { "Node name for S&R": "LoadImage" },
       "widgets_values": ["example.png"],
       "outputs": [
         { "name": "IMAGE", "type": "IMAGE", "links": [1] },
-        { "name": "MASK", "type": "MASK", "links": null }
+        { "name": "MASK", "type": "MASK", "links": [2] }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "InvertMask",
+      "pos": [500, 400],
+      "size": [200, 60],
+      "properties": {},
+      "inputs": [
+        { "name": "mask", "type": "MASK", "link": 2 }
+      ],
+      "outputs": [
+        { "name": "MASK", "type": "MASK", "links": [3] }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "LoadTrellis2Models",
+      "pos": [500, 100],
+      "size": [280, 80],
+      "properties": {},
+      "widgets_values": ["microsoft/TRELLIS.2-4B"],
+      "outputs": [
+        { "name": "trellis2_models", "type": "TRELLIS2_MODELS", "links": [4] }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "Trellis2GetConditioning",
+      "pos": [500, 250],
+      "size": [280, 100],
+      "properties": {},
+      "inputs": [
+        { "name": "image", "type": "IMAGE", "link": 1 },
+        { "name": "mask", "type": "MASK", "link": 3 }
+      ],
+      "outputs": [
+        { "name": "trellis2_cond", "type": "TRELLIS2_COND", "links": [5] }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "Trellis2ImageToShape",
+      "pos": [870, 150],
+      "size": [320, 300],
+      "title": "Generate Shape — tweak settings here",
+      "properties": {},
+      "widgets_values": [42, "randomize", 7.5, 12, 7.5, 12, 49152],
+      "inputs": [
+        { "name": "trellis2_models", "type": "TRELLIS2_MODELS", "link": 4 },
+        { "name": "trellis2_cond", "type": "TRELLIS2_COND", "link": 5 }
+      ],
+      "outputs": [
+        { "name": "shape_result", "type": "TRELLIS2_SHAPE", "links": [6] }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "Trellis2ShapeToTexturedMesh",
+      "pos": [1280, 150],
+      "size": [320, 200],
+      "title": "Generate Texture",
+      "properties": {},
+      "widgets_values": [7.5, 12],
+      "inputs": [
+        { "name": "trellis2_models", "type": "TRELLIS2_MODELS", "link": 4 },
+        { "name": "trellis2_cond", "type": "TRELLIS2_COND", "link": 5 },
+        { "name": "shape_result", "type": "TRELLIS2_SHAPE", "link": 6 }
+      ],
+      "outputs": [
+        { "name": "voxelgrid_npz_path", "type": "STRING", "links": [7] }
       ]
     },
     {
       "id": 7,
-      "type": "Trellis2PreProcessImage",
-      "pos": [500, 300],
-      "size": [250, 80],
+      "type": "Trellis2ExportGLB",
+      "pos": [1690, 150],
+      "size": [320, 200],
+      "title": "Export GLB — face count & texture size",
       "properties": {},
-      "widgets_values": [0],
+      "widgets_values": [200000, 1024, true],
       "inputs": [
-        { "name": "image", "type": "IMAGE", "link": 1 }
+        { "name": "voxelgrid_npz_path", "type": "STRING", "link": 7 }
       ],
       "outputs": [
-        { "name": "image", "type": "IMAGE", "links": [2] }
+        { "name": "glb_path", "type": "STRING", "links": [8] }
       ]
     },
     {
       "id": 8,
-      "type": "Trellis2LoadModel",
-      "pos": [500, 100],
-      "size": [250, 80],
-      "properties": {},
-      "widgets_values": [],
-      "outputs": [
-        { "name": "pipeline", "type": "TRELLIS2_PIPELINE", "links": [3] }
-      ]
-    },
-    {
-      "id": 10,
-      "type": "Trellis2MeshWithVoxelGenerator",
-      "pos": [840, 100],
-      "size": [350, 380],
-      "title": "Generate 3D — tweak settings here",
-      "properties": {},
-      "widgets_values": [
-        42,
-        "randomize",
-        "1024_cascade",
-        12,
-        12,
-        12,
-        7.5,
-        7.5,
-        7.5,
-        999999
-      ],
-      "inputs": [
-        { "name": "pipeline", "type": "TRELLIS2_PIPELINE", "link": 3 },
-        { "name": "image", "type": "IMAGE", "link": 2 }
-      ],
-      "outputs": [
-        { "name": "mesh", "type": "TRELLIS2_MESH", "links": [4] },
-        { "name": "bvh", "type": "TRELLIS2_BVH", "links": [5] }
-      ]
-    },
-    {
-      "id": 12,
-      "type": "Trellis2PostProcessAndUnWrapAndRasterizer",
-      "pos": [1280, 100],
-      "size": [380, 180],
-      "title": "Post-process — face count & texture size",
-      "properties": {},
-      "widgets_values": [
-        200000,
-        1024,
-        "Cumesh"
-      ],
-      "inputs": [
-        { "name": "mesh", "type": "TRELLIS2_MESH", "link": 4 },
-        { "name": "bvh", "type": "TRELLIS2_BVH", "link": 5 }
-      ],
-      "outputs": [
-        { "name": "trimesh", "type": "TRELLIS2_TRIMESH", "links": [6] }
-      ]
-    },
-    {
-      "id": 14,
-      "type": "Trellis2ExportMesh",
-      "pos": [1750, 100],
-      "size": [300, 150],
-      "properties": {},
-      "widgets_values": [
-        "Trellis2Mesh",
-        "glb",
-        true
-      ],
-      "inputs": [
-        { "name": "trimesh", "type": "TRELLIS2_TRIMESH", "link": 6 }
-      ],
-      "outputs": [
-        { "name": "glb_path", "type": "STRING", "links": [7] }
-      ]
-    },
-    {
-      "id": 16,
       "type": "Preview3D",
-      "pos": [2140, 100],
+      "pos": [2100, 150],
       "size": [400, 400],
       "properties": {},
       "inputs": [
-        { "name": "file_path", "type": "STRING", "link": 7 }
+        { "name": "file_path", "type": "STRING", "link": 8 }
       ]
     }
   ],
   "links": [
-    [1, 6, 0, 7, 0, "IMAGE"],
-    [2, 7, 0, 10, 1, "IMAGE"],
-    [3, 8, 0, 10, 0, "TRELLIS2_PIPELINE"],
-    [4, 10, 0, 12, 0, "TRELLIS2_MESH"],
-    [5, 10, 1, 12, 1, "TRELLIS2_BVH"],
-    [6, 12, 0, 14, 0, "TRELLIS2_TRIMESH"],
-    [7, 14, 0, 16, 0, "STRING"]
+    [1, 1, 0, 4, 0, "IMAGE"],
+    [2, 1, 1, 2, 0, "MASK"],
+    [3, 2, 0, 4, 1, "MASK"],
+    [4, 3, 0, 5, 0, "TRELLIS2_MODELS"],
+    [5, 4, 0, 5, 1, "TRELLIS2_COND"],
+    [6, 5, 0, 6, 2, "TRELLIS2_SHAPE"],
+    [7, 6, 0, 7, 0, "STRING"],
+    [8, 7, 0, 8, 0, "STRING"]
   ],
-  "groups": [
-    {
-      "title": "Settings Guide — click the Generate node to tweak",
-      "bounding": [830, 500, 800, 200],
-      "color": "#444",
-      "font_size": 18
-    }
-  ],
+  "groups": [],
   "config": {},
   "extra": {
-    "ds": {
-      "scale": 0.75,
-      "offset": [0, 0]
-    },
-    "info": "TRELLIS.2 Image-to-3D Workflow\n\nGenerate node settings:\n  resolution: '512' (fast, ~6s) or '1024_cascade' (quality, ~40s)\n  ss_steps/shape_steps/tex_steps: 12 is default, 16-20 for higher quality\n  guidance: 7.5 default, lower=more creative, higher=more faithful\n  seed_mode: 'randomize' for variety, 'fixed' to reproduce\n\nPost-process node settings:\n  target_faces: 200000 default (lower=smaller file, 50000 good for mobile)\n  texture_size: 1024 default (512 for mobile, 2048/4096 for hero assets)\n  remesher: 'Cumesh' (best quality)"
+    "ds": { "scale": 0.7, "offset": [0, 0] },
+    "info": "TRELLIS.2 Image-to-3D (PozzettiAndrea node)\n\nShape node: seed, ss_guidance, ss_steps, shape_guidance, shape_steps, max_tokens (49152=1024 voxels)\nTexture node: tex_guidance, tex_steps\nExport: decimation_target, texture_size, remesh"
   },
   "version": 0.4
 }
