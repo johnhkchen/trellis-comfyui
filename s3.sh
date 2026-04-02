@@ -135,9 +135,15 @@ cmd_setup_models() {
     fi
 
     echo ""
-    echo "[3/3] Uploading to network volume (sync — skips unchanged files)..."
-    s3 sync "$CACHE_DIR/microsoft/" "${S3_BASE}/ComfyUI/models/microsoft/"
-    s3 sync "$CACHE_DIR/facebook/" "${S3_BASE}/ComfyUI/models/facebook/"
+    echo "[3/3] Uploading to network volume..."
+    for f in "$MODEL_DIR"/ckpts/*.safetensors "$MODEL_DIR"/ckpts/*.json "$MODEL_DIR"/*.json; do
+        [ -f "$f" ] || continue
+        local relpath="${f#$CACHE_DIR/}"
+        echo "  UP $relpath"
+        s3 cp "$f" "${S3_BASE}/ComfyUI/models/${relpath}" --quiet
+    done
+    echo "  UP facebook/dinov3-vitl16-pretrain-lvd1689m/model.safetensors"
+    s3 cp "$DINO_DIR/model.safetensors" "${S3_BASE}/ComfyUI/models/facebook/dinov3-vitl16-pretrain-lvd1689m/model.safetensors" --quiet
 
     echo ""
     echo "Done. Models are on the network volume."
