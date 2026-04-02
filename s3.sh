@@ -135,15 +135,25 @@ cmd_setup_models() {
     fi
 
     echo ""
-    echo "[3/3] Uploading to network volume..."
+    # Collect all files to upload
+    local -a upload_files=()
     for f in "$MODEL_DIR"/ckpts/*.safetensors "$MODEL_DIR"/ckpts/*.json "$MODEL_DIR"/*.json; do
-        [ -f "$f" ] || continue
-        local relpath="${f#$CACHE_DIR/}"
-        echo "  UP $relpath"
-        s3 cp "$f" "${S3_BASE}/ComfyUI/models/${relpath}" --quiet
+        [ -f "$f" ] && upload_files+=("$f")
     done
-    echo "  UP facebook/dinov3-vitl16-pretrain-lvd1689m/model.safetensors"
-    s3 cp "$DINO_DIR/model.safetensors" "${S3_BASE}/ComfyUI/models/facebook/dinov3-vitl16-pretrain-lvd1689m/model.safetensors" --quiet
+    upload_files+=("$DINO_DIR/model.safetensors")
+
+    local total=${#upload_files[@]}
+    local current=0
+
+    echo "[3/3] Uploading $total files to network volume..."
+    for f in "${upload_files[@]}"; do
+        current=$((current + 1))
+        local relpath="${f#$CACHE_DIR/}"
+        local size
+        size=$(du -h "$f" 2>/dev/null | cut -f1 | tr -d ' ')
+        echo "  [$current/$total] $relpath ($size)"
+        s3 cp "$f" "${S3_BASE}/ComfyUI/models/${relpath}"
+    done
 
     echo ""
     echo "Done. Models are on the network volume."
