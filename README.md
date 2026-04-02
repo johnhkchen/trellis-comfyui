@@ -14,40 +14,45 @@ Generate 3D `.glb` models from images using Microsoft's TRELLIS.2-4B on RunPod G
 
 ## Quick Start
 
-### 1. Create a Network Volume + Pod
+### 1. Create a Network Volume
 
-1. Go to [RunPod](https://runpod.io) > Storage > create a **Network Volume** in **IL-1** region
-2. Go to Pods > Deploy in **IL-1**
-3. GPU: **RTX 4090** spot instance (~$0.20-0.30/hr)
-4. Template: **RunPod ComfyUI** (community template)
-5. Container disk: **20 GB**, attach your network volume
-6. Deploy
+Go to [RunPod](https://runpod.io) > Storage > create a **Network Volume** in **IL-1** region (50 GB).
 
-### 2. One-time Setup (persists on network volume)
+### 2. One-time: Download Models to Volume (no GPU needed)
 
-Open the pod's web terminal:
+From your local machine, download TRELLIS.2 weights directly to the network volume via S3:
+
+```bash
+./s3.sh setup-models    # Downloads ~17 GB from HuggingFace → network volume
+```
+
+This runs locally, no GPU pod needed. The models land on the volume and persist forever.
+
+### 3. One-time: Install ComfyUI Node (needs GPU pod briefly)
+
+Start a GPU pod (RTX 4090 spot, ~$0.20/hr) attached to your volume, then:
 
 ```bash
 git clone https://github.com/johnhkchen/trellis-comfyui.git /workspace/trellis-setup
 bash /workspace/trellis-setup/setup.sh
 ```
 
-Takes ~10 minutes (mostly downloading 17 GB of model weights). Only needed once — everything persists on the network volume.
+Since models are already on the volume, this only installs the ComfyUI node + wheels (~2 min). Stop the pod when done.
 
-### 3. Workflow: Upload, Process, Download (no wasted GPU time)
+### 4. Workflow: Upload, Process, Download
 
 ```bash
-# Step 1: Upload images BEFORE starting the GPU pod (free, via S3)
+# Step 1: Upload images (free — no GPU pod)
 ./s3.sh upload ./my-images/
 
-# Step 2: Start your GPU pod, then in the pod terminal:
+# Step 2: Start GPU pod, process in pod terminal:
 python3 /workspace/trellis-setup/batch.py /workspace/ComfyUI/input/
 
-# Step 3: Stop the GPU pod, then download results (free, via S3)
+# Step 3: Stop GPU pod, download results (free — no GPU pod)
 ./s3.sh download ./generated/
 ```
 
-The S3 API talks directly to the network volume — no GPU pod needed for file transfer.
+GPU time is spent **only** on inference. All file transfer goes through S3 for free.
 
 **Or use ComfyUI interactively:**
 
@@ -58,7 +63,10 @@ The S3 API talks directly to the network volume — no GPU pod needed for file t
 
 ### S3 Commands
 
+All free — no GPU pod needed:
+
 ```bash
+./s3.sh setup-models            # One-time: download TRELLIS.2 weights (~17 GB)
 ./s3.sh upload ./images/        # Upload images to network volume
 ./s3.sh download ./generated/   # Download .glb results
 ./s3.sh ls                      # List root of volume
